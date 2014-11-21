@@ -19,6 +19,22 @@ Manage access keys in Keychain:
   eval `aws-keychain env <name>`
 ```
 
+Install
+-------
+
+Copy/symlink `aws-keychain` to somewhere in your path.
+
+```sh
+ln -s $(pwd)/aws-keychain /usr/local/bin
+```
+
+If you're using Zsh, copy/symlink `aws-keychain-completion.zsh` to `_aws-keychain` in an `$fpath` directory:
+
+```sh
+ln -s $(pwd)/aws-keychain-completion.zsh /usr/local/share/zsh/site-functions/_aws-keychain
+```
+
+
 Example
 -------
 

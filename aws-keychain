@@ -56,7 +56,7 @@ aws_keychain_add() {
 }
 
 aws_keychain_env() {
-  [ $# -eq 2 ] || aws_keychain_usage "aws-keychain cat"
+  [ $# -eq 2 ] || aws_keychain_usage "aws-keychain env"
   local name="$2"
   local raw="$(aws_keychain_raw "$name")"
   local id="$(aws_keychain_extract_generic_attribute "$raw")"

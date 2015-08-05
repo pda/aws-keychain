@@ -15,6 +15,7 @@
 ##   aws-keychain rm <name>
 ##   aws-keychain status
 ##   aws-keychain use <name>
+##   aws-keychain exec <name> <command ... >
 ##   eval `aws-keychain env <name>`
 ##
 ## The `security` CLI to keychain does not enumerate credentials, so
@@ -30,6 +31,7 @@ main() {
     add) aws_keychain_add "$@" ;;
     cat) aws_keychain_cat "$@" ;;
     env) aws_keychain_env "$@" ;;
+    exec) aws_keychain_exec "$@" ;;
     ls) aws_keychain_ls "$@" ;;
     none) aws_keychain_none "$@" ;;
     rm) aws_keychain_rm "$@" ;;
@@ -79,6 +81,13 @@ aws_keychain_format_env() {
 export AWS_ACCESS_KEY_ID="$id"
 export AWS_SECRET_ACCESS_KEY="$secret"
 END
+}
+
+aws_keychain_exec() {
+  [ $# -gt 2 ] || aws_keychain_usage "aws-keychain exec"
+  local name="$2"
+  shift 2
+  eval $($0 env "$name"); exec "$@"
 }
 
 aws_keychain_cat() {

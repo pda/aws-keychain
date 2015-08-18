@@ -2,39 +2,28 @@
 
 ## aws-keychain    (c) 2014-2015 Paul Annesley    MIT license.
 ##
-## Store multiple AWS IAM access keys in Mac OS X keychain.
-## Check out one of them at a time into ~/.aws/credentials
+## Store multiple AWS IAM access keys in Mac OS X keychain and
+## execute commands with AWS credentials in environment.
 ##
-## Manage access keys in Keychain:
-##   aws-keychain add <name> <access_key_id> <secret_access_key>
-##   aws-keychain add <name> # (interactive prompt for key and secret)
+##   aws-keychain add <name> # (interactive prompts follow)
+##   aws-keychain add <name> <access_key_id> <secret_access_key> # (beware shell history)
 ##   aws-keychain ls
 ##   aws-keychain exec <name> <command ... >
-##   aws-keychain cat <name>
 ##   aws-keychain rm <name>
-##   aws-keychain use <name>
-##   aws-keychain status
-##   aws-keychain none
-##
-## `aws-keychain ls` is based on an unauthoritative list on disk,
-## as the `security` CLI to keychain cannot enumerate credentials.
+#
+# Note: `aws-keychain ls` is based on an unauthoritative list on disk, as the
+# `security` CLI to keychain cannot enumerate credentials.
 
 set -euo pipefail
 
-: ${AWS_CREDENTIALS_FILE="$HOME/.aws/credentials"}
 : ${AWS_CREDENTIALS_LIST="$HOME/.aws/aws-keychain.list"}
 
 main() {
   case "${1:-}" in
     add) aws_keychain_add "$@" ;;
-    cat) aws_keychain_cat "$@" ;;
-    env) aws_keychain_env "$@" ;; # deprecated for external use
     exec) aws_keychain_exec "$@" ;;
     ls) aws_keychain_ls "$@" ;;
-    none) aws_keychain_none "$@" ;;
     rm) aws_keychain_rm "$@" ;;
-    status) aws_keychain_status "$@" ;;
-    use) aws_keychain_use "$@" ;;
     *) aws_keychain_usage ;;
   esac
 }
@@ -55,42 +44,14 @@ aws_keychain_add() {
     -s "Amazon AWS" \
     -w "$secret" \
     -U
+  mkdir -p "$(dirname "$AWS_CREDENTIALS_LIST")"
   echo "$name" >> $AWS_CREDENTIALS_LIST
-}
-
-aws_keychain_env() {
-  [ $# -eq 2 ] || aws_keychain_usage "aws-keychain env"
-  local name="$2"
-  local raw="$(aws_keychain_raw "$name")"
-  local id="$(aws_keychain_extract_generic_attribute "$raw")"
-  local secret="$(aws_keychain_extract_password "$raw")"
-  if [ -z "$id" -o -z "$secret" ]; then
-    echo >&2 "No credentials for '$name':"
-    echo >&2 "$raw"
-    exit 1
-  fi
-  aws_keychain_format_env "$id" "$secret"
-}
-
-aws_keychain_format_env() {
-  local id="$1"
-  local secret="$2"
-  cat <<END
-export AWS_ACCESS_KEY_ID="$id"
-export AWS_SECRET_ACCESS_KEY="$secret"
-END
 }
 
 aws_keychain_exec() {
   [ $# -gt 2 ] || aws_keychain_usage "aws-keychain exec"
   local name="$2"
   shift 2
-  eval $($0 env "$name"); exec "$@"
-}
-
-aws_keychain_cat() {
-  [ $# -eq 2 ] || aws_keychain_usage "aws-keychain cat"
-  local name="$2"
   local raw="$(aws_keychain_raw "$name")"
   local id="$(aws_keychain_extract_generic_attribute "$raw")"
   local secret="$(aws_keychain_extract_password "$raw")"
@@ -99,7 +60,7 @@ aws_keychain_cat() {
     echo >&2 "$raw"
     exit 1
   fi
-  aws_keychain_format_credentials "$id" "$secret"
+  AWS_ACCESS_KEY_ID="$id" AWS_SECRET_ACCESS_KEY="$secret" "$@"
 }
 
 aws_keychain_raw() {
@@ -122,27 +83,9 @@ aws_keychain_extract_password() {
   echo "$raw" | awk '/^password:/ { gsub(/^"|"$/, "", $2); print $2 }'
 }
 
-aws_keychain_format_credentials() {
-  local id="$1"
-  local secret="$2"
-  cat <<END
-[default]
-aws_access_key_id=$id
-aws_secret_access_key=$secret
-; deprecated format:
-AWSAccessKeyId=$id
-AWSSecretKey=$secret
-END
-}
-
 aws_keychain_ls() {
   [ $# -eq 1 ] || aws_keychain_usage "aws-keychain ls"
   cat $AWS_CREDENTIALS_LIST | sort | uniq
-}
-
-aws_keychain_none() {
-  [ $# -eq 1 ] || aws_keychain_usage "aws-keychain none"
-  rm -fP $AWS_CREDENTIALS_FILE
 }
 
 aws_keychain_rm() {
@@ -157,46 +100,6 @@ aws_keychain_rm() {
   local tmp="${AWS_CREDENTIALS_LIST}.tmp"
   grep -vw "$name" $AWS_CREDENTIALS_LIST > $tmp
   mv $tmp $AWS_CREDENTIALS_LIST
-}
-
-aws_keychain_status() {
-  [ $# -eq 1 ] || aws_keychain_usage "aws-keychain status"
-  if [ ! -f $AWS_CREDENTIALS_FILE ]; then
-    echo "No access key at $AWS_CREDENTIALS_FILE"
-    exit 0
-  fi
-  local id="$(aws_keychain_current_access_key_id)"
-  if [ -z "$id" ]; then
-    echo "Could not extract access key ID from $AWS_CREDENTIALS_FILE"
-    exit 1
-  fi
-  local name="$(aws_keychain_find_name_by_id "$id")"
-  if [ -z "$name" ]; then
-    echo "Current key $id not found in keychain"
-    exit 1
-  fi
-  echo "$name: $id"
-}
-
-aws_keychain_current_access_key_id() {
-  cat $AWS_CREDENTIALS_FILE | awk 'BEGIN { FS="=" } /^AWSAccessKeyId/ { print $2 }'
-}
-
-aws_keychain_find_name_by_id() {
-  local secret="$1"
-  security find-generic-password \
-    -c "awsv" \
-    -D "access key" \
-    -G "$secret" \
-    -s "Amazon AWS" \
-    -g 2>&1 |
-    awk 'BEGIN { FS="=" } /^ *"acct"/ { gsub(/^"|"$/, "", $2); print $2 }'
-}
-
-aws_keychain_use() {
-  [ $# -eq 2 ] || aws_keychain_usage "aws-keychain use"
-  local name="$2"
-  aws_keychain_cat "$@" > $AWS_CREDENTIALS_FILE
 }
 
 aws_keychain_usage() {

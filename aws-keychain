@@ -1,6 +1,6 @@
 #!/bin/bash
 
-## aws-keychain    (c) 2014 Paul Annesley    MIT license.
+## aws-keychain    (c) 2014-2015 Paul Annesley    MIT license.
 ##
 ## Store multiple AWS IAM access keys in Mac OS X keychain.
 ## Check out one of them at a time into ~/.aws/credentials
@@ -8,18 +8,16 @@
 ## Manage access keys in Keychain:
 ##   aws-keychain add <name> <access_key_id> <secret_access_key>
 ##   aws-keychain add <name> # (interactive prompt for key and secret)
-##   aws-keychain cat <name>
-##   aws-keychain env <name>
 ##   aws-keychain ls
-##   aws-keychain none
-##   aws-keychain rm <name>
-##   aws-keychain status
-##   aws-keychain use <name>
 ##   aws-keychain exec <name> <command ... >
-##   eval `aws-keychain env <name>`
+##   aws-keychain cat <name>
+##   aws-keychain rm <name>
+##   aws-keychain use <name>
+##   aws-keychain status
+##   aws-keychain none
 ##
-## The `security` CLI to keychain does not enumerate credentials, so
-## `aws-keychain ls` is based on an unauthoritative list on disk.
+## `aws-keychain ls` is based on an unauthoritative list on disk,
+## as the `security` CLI to keychain cannot enumerate credentials.
 
 set -euo pipefail
 
@@ -30,7 +28,7 @@ main() {
   case "${1:-}" in
     add) aws_keychain_add "$@" ;;
     cat) aws_keychain_cat "$@" ;;
-    env) aws_keychain_env "$@" ;;
+    env) aws_keychain_env "$@" ;; # deprecated for external use
     exec) aws_keychain_exec "$@" ;;
     ls) aws_keychain_ls "$@" ;;
     none) aws_keychain_none "$@" ;;

@@ -144,7 +144,7 @@ aws_keychain_ls() {
 
 aws_keychain_none() {
   [ $# -eq 1 ] || aws_keychain_usage "aws-keychain none"
-  rm -f $AWS_CREDENTIALS_FILE
+  rm -fP $AWS_CREDENTIALS_FILE
 }
 
 aws_keychain_rm() {

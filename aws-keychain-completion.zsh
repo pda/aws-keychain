@@ -7,13 +7,9 @@ __subcommands() {
   local -a commands
   commands=(
   "add:add a new key to the keychain"
-  "cat:output an key in credentials file format"
-  "env:output an key as shell exports for eval"
+  "exec:excute a command with AWS key in environment"
   "ls:lists known keys"
-  "none:erase the current credentials file"
   "rm:delete a key from the keychain"
-  "status:show the key ID currently active in credentials file"
-  "use:use the named key; write to credentials file"
   )
   _describe "aws-keychain subcommands" commands
 }
@@ -29,6 +25,6 @@ fi
 
 if (( CURRENT == 3 )); then
   case "${words[2]}" in
-    cat|env|rm|use) __key_names ;;
+    rm|exec) __key_names ;;
   esac
 fi

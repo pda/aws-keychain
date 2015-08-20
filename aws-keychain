@@ -42,6 +42,7 @@ aws_keychain_add() {
     -G "$id" \
     -j "aws-keychain IAM access key" \
     -s "Amazon AWS" \
+    -T "" \
     -w "$secret" \
     -U
   mkdir -p "$(dirname "$AWS_CREDENTIALS_LIST")"

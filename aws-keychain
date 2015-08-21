@@ -17,7 +17,7 @@
 set -euo pipefail
 
 : ${AWS_CREDENTIALS_LIST="$HOME/.aws/aws-keychain.list"}
-: ${AWS_KEYCHAIN_FILE="$HOME/Library/Keychains/Amazon AWS.keychain"}
+: ${AWS_KEYCHAIN_FILE="$HOME/Library/Keychains/aws-keychain.keychain"}
 
 main() {
   case "${1:-}" in

@@ -17,6 +17,7 @@
 set -euo pipefail
 
 : ${AWS_CREDENTIALS_LIST="$HOME/.aws/aws-keychain.list"}
+: ${AWS_KEYCHAIN_FILE="$HOME/Library/Keychains/Amazon AWS.keychain"}
 
 main() {
   case "${1:-}" in
@@ -33,6 +34,7 @@ aws_keychain_add() {
   local name="$2"
   local id="${3:-}"
   local secret="${4:-}"
+  [ -e "$AWS_KEYCHAIN_FILE" ] || security create-keychain -P "$AWS_KEYCHAIN_FILE"
   [ -n "$id" ] ||  read -e -p "Access Key ID: " id
   [ -n "$secret" ] ||  read -e -s -p "Secret Access Key (hidden): " secret
   security add-generic-password \
@@ -42,9 +44,10 @@ aws_keychain_add() {
     -G "$id" \
     -j "aws-keychain IAM access key" \
     -s "Amazon AWS" \
-    -T "" \
     -w "$secret" \
-    -U
+    -U \
+    -T "" \
+    "$AWS_KEYCHAIN_FILE"
   mkdir -p "$(dirname "$AWS_CREDENTIALS_LIST")"
   echo "$name" >> $AWS_CREDENTIALS_LIST
 }
@@ -71,7 +74,8 @@ aws_keychain_raw() {
     -c "awsv" \
     -D "access key" \
     -s "Amazon AWS" \
-    -g 2>&1
+    -g \
+    "$AWS_KEYCHAIN_FILE" 2>&1
 }
 
 aws_keychain_extract_generic_attribute() {
@@ -97,7 +101,7 @@ aws_keychain_rm() {
     -c "awsv" \
     -D "access key" \
     -s "Amazon AWS" \
-    >/dev/null
+    "$AWS_KEYCHAIN_FILE" >/dev/null
   local tmp="${AWS_CREDENTIALS_LIST}.tmp"
   grep -vw "$name" $AWS_CREDENTIALS_LIST > $tmp
   mv $tmp $AWS_CREDENTIALS_LIST

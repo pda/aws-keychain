@@ -1,5 +1,17 @@
 ## Changelog for aws-keychain
 
+# v3.0.0 2015-09-22
+
+This release focuses on better Keychain security;
+
+* Prevent `security` / `aws-keychain` from being whitelisted to access Keychain items. https://github.com/pda/aws-keychain/pull/13
+* Store in a separate `aws-keychain.keychain` instead of the always-unlocked `login.keychain`. https://github.com/pda/aws-keychain/pull/15
+    * Override with `AWS_KEYCHAIN_FILE` environment variable.
+    * `aws-keychain migrate` moves items from `login.keychain` to `aws-keychain.keychain`.
+
+Keychain Access (which ships with Mac OS X) can be used to adjust the auto-lock parameters on the new keychain file. It is recommended that you don't “Always allow” when prompted. You can hit spacebar to allow access when prompted while the keychain is unlocked.
+
+
 # v2.0.0 2015-08-18
 
 This release focuses on simplifying the interface and never storing credentials unencrypted to disk. Instead `aws-keychain exec <name> <cmd ...>` becomes the primary mode of operation.

@@ -17,12 +17,14 @@
 set -euo pipefail
 
 : ${AWS_CREDENTIALS_LIST="$HOME/.aws/aws-keychain.list"}
+: ${AWS_KEYCHAIN_FILE="$HOME/Library/Keychains/aws-keychain.keychain"}
 
 main() {
   case "${1:-}" in
     add) aws_keychain_add "$@" ;;
     exec) aws_keychain_exec "$@" ;;
     ls) aws_keychain_ls "$@" ;;
+    migrate) aws_keychain_migrate "$@" ;;
     rm) aws_keychain_rm "$@" ;;
     *) aws_keychain_usage ;;
   esac
@@ -33,6 +35,7 @@ aws_keychain_add() {
   local name="$2"
   local id="${3:-}"
   local secret="${4:-}"
+  [ -e "$AWS_KEYCHAIN_FILE" ] || security create-keychain -P "$AWS_KEYCHAIN_FILE"
   [ -n "$id" ] ||  read -e -p "Access Key ID: " id
   [ -n "$secret" ] ||  read -e -s -p "Secret Access Key (hidden): " secret
   security add-generic-password \
@@ -42,9 +45,10 @@ aws_keychain_add() {
     -G "$id" \
     -j "aws-keychain IAM access key" \
     -s "Amazon AWS" \
-    -T "" \
     -w "$secret" \
-    -U
+    -U \
+    -T "" \
+    "$AWS_KEYCHAIN_FILE"
   mkdir -p "$(dirname "$AWS_CREDENTIALS_LIST")"
   echo "$name" >> $AWS_CREDENTIALS_LIST
 }
@@ -59,6 +63,7 @@ aws_keychain_exec() {
   if [ -z "$id" -o -z "$secret" ]; then
     echo >&2 "No credentials for '$name':"
     echo >&2 "$raw"
+    echo >&2 "You may need to 'aws-keychain migrate'"
     exit 1
   fi
   AWS_ACCESS_KEY_ID="$id" AWS_SECRET_ACCESS_KEY="$secret" "$@"
@@ -71,7 +76,8 @@ aws_keychain_raw() {
     -c "awsv" \
     -D "access key" \
     -s "Amazon AWS" \
-    -g 2>&1
+    -g \
+    "$AWS_KEYCHAIN_FILE" 2>&1
 }
 
 aws_keychain_extract_generic_attribute() {
@@ -89,6 +95,21 @@ aws_keychain_ls() {
   cat $AWS_CREDENTIALS_LIST | sort | uniq
 }
 
+aws_keychain_migrate() {
+  local src=${AWS_KEYCHAIN_FILE_SRC:-"$HOME/Library/Keychains/login.keychain"}
+  local dst="$AWS_KEYCHAIN_FILE"
+  local tmp_list="$AWS_CREDENTIALS_LIST-migrate"
+  cp -- "$AWS_CREDENTIALS_LIST" "$tmp_list"
+  for name in $(aws_keychain_ls ls); do
+    if [ "$src" = "$dst" ]; then echo >&2 "Cannot migrate from $src to $dst"; exit 1; fi
+    echo "Migrating $name from '$src' to '$dst'"
+    AWS_KEYCHAIN_FILE="$src" aws-keychain exec $name \
+      bash -c "AWS_KEYCHAIN_FILE="$dst" $0 add \"$name\" \"\$AWS_ACCESS_KEY_ID\" \"\$AWS_SECRET_ACCESS_KEY\""
+    AWS_KEYCHAIN_FILE="$src" AWS_CREDENTIALS_LIST="$tmp_list" $0 rm $name
+  done
+  rm -- "$tmp_list"
+}
+
 aws_keychain_rm() {
   [ $# -eq 2 ] || aws_keychain_usage "aws-keychain rm"
   local name="$2"
@@ -97,7 +118,7 @@ aws_keychain_rm() {
     -c "awsv" \
     -D "access key" \
     -s "Amazon AWS" \
-    >/dev/null
+    "$AWS_KEYCHAIN_FILE" >/dev/null
   local tmp="${AWS_CREDENTIALS_LIST}.tmp"
   grep -vw "$name" $AWS_CREDENTIALS_LIST > $tmp
   mv $tmp $AWS_CREDENTIALS_LIST

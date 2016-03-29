@@ -35,6 +35,12 @@ If you're using Zsh, copy/symlink `aws-keychain-completion.zsh` to `_aws-keychai
 ln -s $(pwd)/aws-keychain-completion.zsh /usr/local/share/zsh/site-functions/_aws-keychain
 ```
 
+If you're using Bash, source `aws-keychain-completion.bash` in your `.bashrc` or copy/symlink `aws-keychain-completion.bash` to your `etc/bash_completion.d`:
+
+```sh
+ln -s $(pwd)/aws-keychain-completion.bash /usr/local/etc/bash_completion.d/aws-keychain-completion.bash
+```
+
 
 Example
 -------

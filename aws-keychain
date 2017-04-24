@@ -16,8 +16,15 @@
 
 set -euo pipefail
 
+## Siera detection: different keychain filename extension on 10.12 and above
+os_version=`sw_vers -productVersion`
+extension="keychain"
+if [ "${os_version:0:2}" == 10 -a "${os_version:3:2}" -ge 12 ] ; then
+  extension="keychain-db"
+fi
+
 : ${AWS_CREDENTIALS_LIST="$HOME/.aws/aws-keychain.list"}
-: ${AWS_KEYCHAIN_FILE="$HOME/Library/Keychains/aws-keychain.keychain"}
+: ${AWS_KEYCHAIN_FILE="$HOME/Library/Keychains/aws-keychain.$extension"}
 
 main() {
   case "${1:-}" in

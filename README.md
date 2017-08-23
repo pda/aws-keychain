@@ -1,6 +1,8 @@
 aws-keychain
 ============
 
+*Note: I recommend https://github.com/99designs/aws-vault instead, and will not be maintaining aws-keychain.*
+
 The aim of `aws-keychain` is to run commands that require AWS credentials
 without ever storing those credentials unencrypted on disk. Mac OS X's keychain
 is used for storage, and credentials are passed to commands via the well known
